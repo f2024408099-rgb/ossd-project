@@ -1,0 +1,8 @@
+{
+  "name": "CyberTrace Threat Intelligence",
+  "description": "Collaborative threat intelligence reporting platform with incident logs, analyst workspace, comments Hub, and SOC administrator audit centers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
