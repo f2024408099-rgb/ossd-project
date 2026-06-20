@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyst Profile Panel | CyberTrace</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .container-limit {
+        max-width: 800px;
+      }
+    </style>
+  </head>
+  <body class="bg-dark text-light">
+    <!-- Navbar -->
+    <div id="cybertrace-navbar"></div>
+
+    <div class="container container-limit py-4">
+      <!-- Breadcrumbs -->
+      <nav class="custom-breadcrumb mb-4" aria-label="breadcrumb">
+        <span>CyberTrace Node</span> / <strong class="text-light">User Profile Panel</strong>
+      </nav>
+
+      <div class="row g-4">
+        <!-- Configuration Card -->
+        <div class="col-md-7">
+          <div class="card-custom bg-dark border-secondary border-opacity-15 p-4">
+            <h4 class="fw-bold text-white mb-2"><i class="bi bi-gear-wide-connected text-info"></i> Node Profile Settings</h4>
+            <p class="text-secondary small mb-4">Modify your active analyst call sign credentials or renew credentials.</p>
+
+            <form id="profile-update-form">
+              <div class="mb-3">
+                <label for="prof-email" class="form-label small text-secondary">Registered Email Name (Unchangeable)</label>
+                <input type="email" id="prof-email" class="form-control bg-dark text-secondary border-secondary small" disabled>
+              </div>
+
+              <div class="mb-3">
+                <label for="prof-display" class="form-label small text-secondary">Analyst Signature Signature / Call Sign</label>
+                <input type="text" id="prof-display" class="form-control bg-dark text-white border-secondary small" required placeholder="e.g. CyberSentinel">
+              </div>
+
+              <div class="mb-4">
+                <label for="prof-pwd" class="form-label small text-secondary">Renew Master Password (Optional)</label>
+                <input type="password" id="prof-pwd" class="form-control bg-dark text-white border-secondary small" placeholder="Leave blank to maintain current PIN">
+              </div>
+
+              <button type="submit" class="btn btn-primary-custom w-100 py-2.5 font-mono text-uppercase small fw-bold">
+                <i class="bi bi-save2-fill"></i> Save credential parameters
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Node Profile Stats Overview -->
+        <div class="col-md-5">
+          <div class="card-custom bg-dark border-secondary border-opacity-15 p-4 h-100">
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-database-check text-success"></i> Analyst Node Metrics</h5>
+            
+            <div class="d-flex flex-column gap-3">
+              <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary border-opacity-10">
+                <div class="text-muted small">Registered Role Privilege</div>
+                <strong id="prof-role-badge" class="text-info text-uppercase font-mono mt-0.5 d-block">USER NODE</strong>
+              </div>
+
+              <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary border-opacity-10">
+                <div class="text-muted small">Operational Commission Date</div>
+                <span id="prof-joined-date" class="text-secondary font-mono small d-block">January 1, 2026</span>
+              </div>
+
+              <div class="text-center mt-3">
+                <i class="bi bi-shield-fill-check fs-1 text-success text-opacity-70"></i>
+                <p class="text-secondary small mt-2 mb-0">Your cryptographic connection to core nodes is fully validated.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Enforce login
+        const user = getUserFromToken();
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        renderNavbar();
+        preloadUserProfileInfo();
+
+        const form = document.getElementById("profile-update-form");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const display_name = document.getElementById("prof-display").value;
+          const password = document.getElementById("prof-pwd").value;
+
+          const payload = { display_name };
+          if (password) {
+            payload.password = password;
+          }
+
+          try {
+            await apiRequest("users/me", {
+              method: "PUT",
+              body: JSON.stringify(payload)
+            });
+
+            // Update user details in current token
+            user.display_name = display_name;
+            saveToken(getToken(), user);
+
+            showToast("Profile credentials updated successfully. Refreshing node configuration...", "success");
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } catch (err) {
+            showToast(`Update Failed: ${err.message}`, "danger");
+          }
+        });
+      });
+
+      async function preloadUserProfileInfo() {
+        try {
+          const profile = await apiRequest("auth/me");
+          
+          document.getElementById("prof-email").value = profile.email;
+          document.getElementById("prof-display").value = profile.display_name || "";
+          document.getElementById("prof-role-badge").textContent = `${profile.role.toUpperCase()} NODE`;
+          
+          const joinedDate = profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+          }) : "Active State";
+          document.getElementById("prof-joined-date").textContent = joinedDate;
+
+        } catch (err) {
+          showToast(`Preload profiling metrics failed: ${err.message}`, "danger");
+        }
+      }
+    </script>
+  </body>
+</html>

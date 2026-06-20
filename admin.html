@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SOC Admin Center | CyberTrace</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .container-limit {
+        max-width: 1200px;
+      }
+      .admin-card {
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #111827;
+        margin-bottom: 1.5rem;
+      }
+      .badge-role {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body class="bg-dark text-light">
+    <!-- Navbar -->
+    <div id="cybertrace-navbar"></div>
+
+    <div class="container container-limit py-4">
+      <!-- Breadcrumbs -->
+      <nav class="custom-breadcrumb mb-4" aria-label="breadcrumb">
+        <span>CyberTrace Node</span> / <a href="dashboard.html" class="text-secondary">Analyst Desktop</a> / <strong class="text-light">SOC Admin panel</strong>
+      </nav>
+
+      <!-- Auth Guard Alert (Hidden by default) -->
+      <div id="access-denied-alert" class="alert alert-danger d-none py-4 text-center my-5" role="alert">
+        <i class="bi bi-shield-x fs-1 text-danger d-block mb-3"></i>
+        <h4 class="alert-heading fw-bold">UNAUTHORIZED SECURITY LEVEL</h4>
+        <p class="mb-0">You require Administrator Credentials to access this node. Back away or authenticate.</p>
+        <a href="login.html" class="btn btn-primary mt-3">Authenticate System</a>
+      </div>
+
+      <!-- Main Panel (Hidden till verified) -->
+      <div id="admin-main-panel" class="d-none">
+        
+        <div class="row align-items-center mb-4">
+          <div class="col-md-8">
+            <h2 class="fw-bold m-0"><i class="bi bi-cpu text-info"></i> Security Operations Control (SOC)</h2>
+            <p class="text-secondary small m-0 mt-1">Platform management, threat validation, user authorization controls, and system logs.</p>
+          </div>
+          <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <button onclick="loadAdminDashboard()" class="btn btn-outline-info btn-sm">
+              <i class="bi bi-arrow-clockwise"></i> Refresh Dashboard Telemetry
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetry KPIs -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="card-custom bg-dark text-white p-3 border-secondary border-opacity-20">
+              <div class="text-secondary small fw-semibold text-uppercase">Total Submissions</div>
+              <h2 id="stat-total-incidents" class="fw-extrabold text-info mt-1">0</h2>
+              <span class="text-muted small">threat documents cataloged</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card-custom bg-dark text-white p-3 border-secondary border-opacity-20">
+              <div class="text-secondary small fw-semibold text-uppercase">Verified Actives</div>
+              <h2 id="stat-verified-incidents" class="fw-extrabold text-success mt-1">0</h2>
+              <span class="text-muted small">fully validated indicators</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card-custom bg-dark text-white p-3 border-secondary border-opacity-20">
+              <div class="text-secondary small fw-semibold text-uppercase">Verification Rate</div>
+              <h2 id="stat-verification-rate" class="fw-extrabold text-warning mt-1">0%</h2>
+              <span class="text-muted small">approved by administration</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card-custom bg-dark text-white p-3 border-secondary border-opacity-20">
+              <div class="text-secondary small fw-semibold text-uppercase">Total Analysts</div>
+              <h2 id="stat-total-users" class="fw-extrabold text-primary mt-1">0</h2>
+              <span class="text-muted small">registered nodes inside DB</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          
+          <!-- Incidents Queue Tab -->
+          <div class="col-lg-12">
+            <div class="card-custom bg-dark border-secondary border-opacity-20 p-4 mb-4">
+              <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-list-stars text-warning"></i> Active Review Queue
+              </h5>
+              <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle small">
+                  <thead>
+                    <tr>
+                      <th>Title & description</th>
+                      <th>IOC Type</th>
+                      <th>Indicator Value</th>
+                      <th>Severity</th>
+                      <th>Reporter</th>
+                      <th>Status</th>
+                      <th class="text-end">Verification Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="incidents-review-table">
+                    <tr>
+                      <td colspan="7" class="text-center py-4 text-secondary">Loading security queue documents...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Users and Logs split row -->
+          <div class="col-lg-6">
+            <div class="card-custom bg-dark border-secondary border-opacity-20 p-4 h-100">
+              <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-people-fill text-info"></i> User Directory Management
+              </h5>
+              <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-dark table-hover align-middle small">
+                  <thead>
+                    <tr>
+                      <th>Analyst</th>
+                      <th>Role</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-directory-table">
+                    <tr>
+                      <td colspan="3" class="text-center py-3 text-secondary">Loading user database...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card-custom bg-dark border-secondary border-opacity-20 p-4 h-100">
+              <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-lock-fill text-success"></i> Security Audit Trail
+              </h5>
+              <div style="max-height: 410px; overflow-y: auto;">
+                <ul id="audit-trail-history" class="list-group list-group-flush bg-transparent">
+                  <li class="list-group-item bg-transparent text-secondary py-3 text-center">Loading audit history...</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Incident Review Approval Modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border border-secondary border-opacity-30 shadow-lg">
+          <div class="modal-header border-secondary border-opacity-20">
+            <h5 class="modal-title fw-bold" id="reviewModalLabel">Administrative Verification Review</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="verification-form">
+              <input type="hidden" id="ver-incident-id">
+              
+              <div class="mb-3">
+                <label class="form-label small text-secondary">Incident Reference Title</label>
+                <div id="ver-incident-title" class="fw-bold text-white bg-secondary bg-opacity-10 p-2 rounded small">Incident Title</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="ver-status" class="form-label small text-secondary">Decision Action</label>
+                <select id="ver-status" class="form-select bg-dark text-white border-secondary small" required>
+                  <option value="verified">Approve & Catalog (Verified Threat)</option>
+                  <option value="false_positive">Mark as False Positive</option>
+                  <option value="under_review">Place Under Deep Review</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="ver-notes" class="form-label small text-secondary">Verification Notes / Action Taken</label>
+                <textarea id="ver-notes" class="form-control bg-dark text-white border-secondary small" rows="3" placeholder="e.g. Mapped to Active APT drop zone, blocking feeds propagated." required></textarea>
+              </div>
+
+              <div class="text-end">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary-custom btn-sm">Post Approval Decision</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Corporate helper functions -->
+    <script src="app.js"></script>
+    <script>
+      let activeReviewModal = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Enforce rigid client-side admin control validations
+        const user = getUserFromToken();
+        if (!user || user.role !== "admin") {
+          document.getElementById("access-denied-alert").classList.remove("d-none");
+          return;
+        }
+
+        document.getElementById("admin-main-panel").classList.remove("d-none");
+        renderNavbar();
+
+        // Load dashboard objects
+        loadAdminDashboard();
+
+        // Handle verification form sumbission
+        const verForm = document.getElementById("verification-form");
+        verForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const id = document.getElementById("ver-incident-id").value;
+          const status = document.getElementById("ver-status").value;
+          const admin_notes = document.getElementById("ver-notes").value;
+
+          try {
+            await apiRequest(`incidents/${id}/verify`, {
+              method: "PUT",
+              body: JSON.stringify({ status, admin_notes })
+            });
+            showToast("Review decision posted successfully!", "success");
+            
+            // Dismiss Modal
+            if (activeReviewModal) {
+              activeReviewModal.hide();
+            }
+            
+            // Reload
+            loadAdminDashboard();
+          } catch (err) {
+            showToast(`Verification Failed: ${err.message}`, "danger");
+          }
+        });
+      });
+
+      async function loadAdminDashboard() {
+        try {
+          // Fetch telemetries
+          const stats = await apiRequest("stats/platform");
+          renderStats(stats);
+          
+          // Fetch incidents reviews
+          const incidents = await apiRequest("incidents");
+          renderQueue(incidents);
+
+          // Fetch users list
+          const users = await apiRequest("users");
+          renderUsers(users);
+
+        } catch (err) {
+          showToast(`Telemetry Retrieval failed: ${err.message}`, "danger");
+        }
+      }
+
+      function renderStats(stats) {
+        document.getElementById("stat-total-incidents").textContent = stats.summary.total_incidents;
+        document.getElementById("stat-verified-incidents").textContent = stats.summary.verified_incidents;
+        document.getElementById("stat-verification-rate").textContent = `${stats.summary.verification_rate}%`;
+        document.getElementById("stat-total-users").textContent = stats.summary.total_users;
+
+        // Render audit trail list
+        const auditList = document.getElementById("audit-trail-history");
+        auditList.innerHTML = "";
+
+        if (!stats.recent_audit_trail || stats.recent_audit_trail.length === 0) {
+          auditList.innerHTML = '<li class="list-group-item bg-transparent text-secondary py-3 text-center small">No audit incidents logged.</li>';
+          return;
+        }
+
+        stats.recent_audit_trail.forEach(log => {
+          const lItem = document.createElement("li");
+          lItem.className = "list-group-item bg-transparent text-light border-secondary border-opacity-10 py-2.5 px-0";
+          lItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <strong class="text-info font-mono small text-uppercase" style="font-size:0.7rem;">${log.action}</strong>
+              <span class="text-secondary font-mono" style="font-size:0.65rem;">${new Date(log.timestamp).toLocaleTimeString()}</span>
+            </div>
+            <p class="mb-0 text-secondary" style="font-size:0.75rem;">${log.details}</p>
+          `;
+          auditList.appendChild(lItem);
+        });
+      }
+
+      function renderQueue(incidents) {
+        const tbody = document.getElementById("incidents-review-table");
+        tbody.innerHTML = "";
+
+        if (incidents.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-secondary small">No active incidents files found in catalog.</td></tr>';
+          return;
+        }
+
+        incidents.forEach(inc => {
+          const tr = document.createElement("tr");
+          let statusBadgeClass = "bg-warning";
+          if (inc.status === "verified") statusBadgeClass = "bg-success";
+          if (inc.status === "false_positive") statusBadgeClass = "bg-danger";
+          if (inc.status === "under_review") statusBadgeClass = "bg-primary";
+
+          tr.innerHTML = `
+            <td>
+              <div class="fw-bold text-white">${inc.title}</div>
+              <div class="text-secondary text-truncate" style="max-width:250px; font-size:0.75rem;">${inc.description}</div>
+            </td>
+            <td><span class="badge bg-secondary font-mono text-uppercase" style="font-size:0.65rem;">${inc.ioc_type}</span></td>
+            <td><code class="font-mono text-white">${inc.ioc_value}</code></td>
+            <td><span class="badge bg-danger bg-opacity-25 text-danger fw-bold text-uppercase" style="font-size:0.65rem;">${inc.severity}</span></td>
+            <td><div class="text-secondary" style="font-size: 0.75rem;">${inc.reporter_name}</div></td>
+            <td><span class="badge ${statusBadgeClass} text-uppercase" style="font-size:0.65rem; padding: 0.2rem 0.4rem;">${inc.status}</span></td>
+            <td class="text-end">
+              <button onclick="promptReview('${inc.id}', '${inc.title.replace(/'/g, "\\'")}', '${inc.status}', '${inc.admin_notes.replace(/'/g, "\\'")}')" class="btn btn-sm btn-outline-info text-uppercase" style="font-size: 0.65rem;">
+                <i class="bi bi-shield-check"></i> Evaluate
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderUsers(users) {
+        const tbody = document.getElementById("users-directory-table");
+        tbody.innerHTML = "";
+
+        if (users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-secondary">No user records.</td></tr>';
+          return;
+        }
+
+        users.forEach(u => {
+          const tr = document.createElement("tr");
+          const roleBadgeClass = u.role === "admin" ? "bg-info text-dark" : "bg-secondary text-white";
+          
+          tr.innerHTML = `
+            <td>
+              <div class="fw-bold text-white">${u.display_name}</div>
+              <div class="text-secondary" style="font-size:0.7rem;">${u.email}</div>
+            </td>
+            <td><span class="badge badge-role ${roleBadgeClass} text-uppercase font-mono">${u.role}</span></td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button onclick="toggleUserRole('${u.id}', '${u.role}')" class="btn btn-outline-warning" title="Toggle User/Admin Role">
+                  <i class="bi bi-shuffle"></i>
+                </button>
+                <button onclick="deleteUserProfile('${u.id}')" class="btn btn-outline-danger" title="Evict User Profile">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function promptReview(id, title, status, notes) {
+        document.getElementById("ver-incident-id").value = id;
+        document.getElementById("ver-incident-title").textContent = title;
+        document.getElementById("ver-status").value = status;
+        document.getElementById("ver-notes").value = notes;
+
+        const modalEl = document.getElementById("reviewModal");
+        activeReviewModal = new bootstrap.Modal(modalEl);
+        activeReviewModal.show();
+      }
+
+      async function toggleUserRole(id, currentRole) {
+        const nextRole = currentRole === "admin" ? "user" : "admin";
+        if (!confirm(`Are you sure you want to transition role privilege for this analyst to '${nextRole.toUpperCase()}'?`)) {
+          return;
+        }
+
+        try {
+          await apiRequest(`users/${id}/role`, {
+            method: "PUT",
+            body: JSON.stringify({ role: nextRole })
+          });
+          showToast("Analyst role credential adjusted successfully.", "success");
+          loadAdminDashboard();
+        } catch (err) {
+          showToast(`Role modification failed: ${err.message}`, "danger");
+        }
+      }
+
+      async function deleteUserProfile(id) {
+        if (!confirm("CRITICAL WARNING: Are you sure you want to completely evict this analyst credentials and records from database? This is irreversible.")) {
+          return;
+        }
+
+        try {
+          await apiRequest(`users/${id}`, { method: "DELETE" });
+          showToast("Analyst node evicted from registry.", "success");
+          loadAdminDashboard();
+        } catch (err) {
+          showToast(`Eject failed: ${err.message}`, "danger");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyst Registration | CyberTrace</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .register-container {
+        max-width: 460px;
+        margin-top: 80px;
+      }
+    </style>
+  </head>
+  <body class="bg-dark text-light">
+    <!-- Navbar -->
+    <div id="cybertrace-navbar"></div>
+
+    <div class="container d-flex justify-content-center">
+      <div class="card-custom bg-dark border-secondary border-opacity-15 p-4 w-100 register-container">
+        <div class="text-center mb-4">
+          <i class="bi bi-person-plus-fill text-info fs-1"></i>
+          <h3 class="fw-bold text-white mt-2">Join Security Network</h3>
+          <p class="text-secondary small">Register your analyst node identity to submit threat vectors.</p>
+        </div>
+
+        <form id="register-form">
+          <div class="mb-3">
+            <label for="display_name" class="form-label small text-secondary">Analyst Signature / Call Sign</label>
+            <input type="text" class="form-control bg-dark text-white border-secondary small" id="display_name" required placeholder="e.g. ThreatSeeker7">
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label small text-secondary">Registered Email Address</label>
+            <input type="email" class="form-control bg-dark text-white border-secondary small" id="email" required placeholder="name@domain-spec.com">
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label small text-secondary">Core Master Password</label>
+            <input type="password" class="form-control bg-dark text-white border-secondary small" id="password" required placeholder="Choose a highly robust key">
+          </div>
+
+          <div class="mb-3">
+            <label for="role" class="form-label small text-secondary">Analyst System Level</label>
+            <select class="form-select bg-dark text-white border-secondary small" id="role">
+              <option value="user" selected>Standard Security Analyst</option>
+              <option value="admin">Security Administrator</option>
+            </select>
+          </div>
+
+          <div class="mb-4" id="secret-code-container" style="display: none;">
+            <label for="secret_code" class="form-label small text-secondary">Admin Clearance Secret Code</label>
+            <input type="password" class="form-control bg-dark text-white border-secondary small" id="secret_code" placeholder="Enter secret code (e.g. 1234)">
+          </div>
+
+          <button type="submit" class="btn btn-primary-custom w-100 py-2.5 text-uppercase fw-bold font-mono small">
+            <i class="bi bi-person-plus-fill"></i> Sign Up
+          </button>
+        </form>
+
+        <div class="text-center mt-3 small text-secondary">
+          Already registered? <a href="login.html" class="text-info text-decoration-none">Log In</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        renderNavbar();
+
+        // Redirect if already logged in
+        if (getUserFromToken()) {
+          window.location.href = "dashboard.html";
+        }
+
+        const roleSelect = document.getElementById("role");
+        const secretCodeContainer = document.getElementById("secret-code-container");
+        roleSelect.addEventListener("change", () => {
+          if (roleSelect.value === "admin") {
+            secretCodeContainer.style.display = "block";
+            document.getElementById("secret_code").setAttribute("required", "required");
+          } else {
+            secretCodeContainer.style.display = "none";
+            document.getElementById("secret_code").removeAttribute("required");
+            document.getElementById("secret_code").value = "";
+          }
+        });
+
+        const form = document.getElementById("register-form");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const display_name = document.getElementById("display_name").value;
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          const role = document.getElementById("role").value;
+          const secret_code = document.getElementById("secret_code").value;
+
+          try {
+            await apiRequest("auth/register", {
+              method: "POST",
+              body: JSON.stringify({ email, password, display_name, role, secret_code })
+            });
+
+            showToast("Registration successful! Redirecting to login page.", "success");
+            setTimeout(() => {
+              window.location.href = "login.html";
+            }, 1200);
+          } catch (err) {
+            showToast(`Registration Error: ${err.message}`, "danger");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
